@@ -1,0 +1,147 @@
+---
+title: "Summary Report"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+    theme: flatly
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, eval = TRUE, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE }
+require(data.table)
+require(dplyr)
+require(ggplot2)
+require(agricolae)
+require(DT)
+
+fast_read <- function(dir, file)
+{
+  return(
+    data.table::fread(file = paste0(dir, file)) %>% 
+      rename(
+        'Highest' = 'V1',
+        'Sum' = 'V2',
+        'Count' = 'V3',
+        'Start' = 'V4',
+        'End' = 'V5'
+      ) %>%
+      mutate(
+        Script = substr(file, 1, nchar(file)-4),
+        Interval = (End - Start)/1000000000
+      )
+  )
+}
+
+```
+
+
+## Introduction
+
+The goal of this report is to ...
+
+[...]
+
+## Descriptive
+
+In this session will be presented the descriptive statistics about the time of execution of each programming language. 
+
+**PS:** It was removed from the analysis the top and bottom 5% results for each language.
+
+```{r, eval = TRUE, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+db <- purrr::map_df(.x = list.files('outputs/'),.f = fast_read, dir = 'outputs/') %>%
+  group_by(Script) %>%
+  mutate(
+    top_5 = quantile(Interval, 0.95),
+    bottom_5 = quantile(Interval, 0.05),
+    flag_remove = if_else(Interval <= bottom_5 | Interval >= top_5, 1, 0)
+  ) %>%
+  filter(flag_remove != 1) %>%
+  mutate(
+    Order = 1:n()
+  ) %>%
+  ungroup()
+```
+
+
+```{r, eval = TRUE, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+# graphic
+db %>%
+  ggplot(aes(x = Order, y = Interval, color = Script)) +
+  geom_line()
+
+db %>%
+  ggplot(aes(y = Interval, color = Script)) +
+  geom_boxplot()
+
+
+
+```
+
+```{r, eval = TRUE, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+# table
+tab_summary <- db %>%
+  group_by(Script) %>%
+  summarise(
+    n = max(Count),
+    Average_Execution = mean(Interval),
+    Average_Per_Record = mean(Count/Interval/1000000000),
+    Std = sd(Interval),
+    Min = min(Interval),
+    Max = max(Interval)
+  )
+
+DT::datatable(
+  tab_summary,
+  rownames = FALSE,
+  options = list(dom = 'ft', scrollX = TRUE)
+)
+
+```
+
+
+
+## Statistical Comparison
+
+It was fit an ANOVA model to verify if the differences between the average execution times are statistically significant. 
+
+The result is presented below:
+
+
+```{r, eval = TRUE, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
+
+# ANOVA
+resp_anova <- aov(formula = Interval ~ Script, data = db)
+summary(resp_anova)
+
+show_complement<- if_else(unlist(summary(resp_anova))["Pr(>F)1"] <= 0.05, TRUE, FALSE)
+
+```
+
+`r if(show_complement){"The ANOVA was significative at 5% significance level, which means that there are statistical differences in terms of averages between the excution times for the different programming languages."}`
+
+`r if(show_complement == FALSE){"The ANOVA was not significative at 5% significance level, which means that there are no statistical difference in terms of averages between the excution times for the different programming laguanges."}`
+
+`r if(show_complement){"To identify where these differences are it was applied the Tukey test. The Tukey test result is presente below: "}`
+
+`r if(show_complement){" **PS:** Different letters represents statistical differences in averages terms"}`
+
+`r if(show_complement){""}`
+
+```{r echo = FALSE, eval = show_complement}
+
+comp <- HSD.test(resp_anova, trt = 'Script', group = TRUE)
+
+DT::datatable(
+  comp$groups,
+  rownames = TRUE,
+  options = list(dom = 'ft', scrollX = TRUE)
+)
+
+```
+

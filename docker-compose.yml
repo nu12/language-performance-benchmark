@@ -1,0 +1,11 @@
+version: '3'
+
+services: 
+    lpb:
+        build: 
+            context: .
+            args: 
+                ITERATIONS: 100
+                DB_SIZE: 100000
+        ports: 
+            - "80:80"

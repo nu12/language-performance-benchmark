@@ -1,0 +1,13 @@
+bin/*
+!bin/.keep
+
+db/*
+!db/.keep
+
+outputs/*
+!outputs/.keep
+
+result/*
+!result/.keep
+
+.Rhistory
