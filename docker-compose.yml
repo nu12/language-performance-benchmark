@@ -7,5 +7,6 @@ services:
             args: 
                 ITERATIONS: 100
                 DB_SIZE: 100000
+                EXPERIMENT_LABEL: Label
         ports: 
             - "80:80"

@@ -1,4 +1,4 @@
 
 library("rmarkdown")
 
-render("index.Rmd", output_dir ="result")
+render("resources/index.Rmd", output_dir ="result")

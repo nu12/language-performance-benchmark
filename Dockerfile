@@ -4,12 +4,12 @@
 FROM ruby:2.7 as database
 
 ARG DB_SIZE=100000
+ARG EXPERIMENT_LABEL
 
 WORKDIR /app
 RUN mkdir bin db outputs resources result src
 COPY resources/ /app/resources/
 COPY src/ /app/src/
-COPY run.sh index.Rmd /app/
 RUN ruby resources/create_database.rb $DB_SIZE
 
 #################################################
@@ -21,7 +21,7 @@ ARG ITERATIONS=100
 WORKDIR /app
 COPY --from=database /app /app
 
-RUN sh run.sh ruby src/ruby_a.rb ruby_a $ITERATIONS
+RUN sh resources/run.sh ruby src/ruby_a.rb ruby_a $ITERATIONS
 
 #################################################
 #                    PYTHON                     #
@@ -32,7 +32,7 @@ ARG ITERATIONS=100
 WORKDIR /app
 COPY --from=database /app /app
 
-RUN sh run.sh python3 src/python_a.py python_a $ITERATIONS
+RUN sh resources/run.sh python3 src/python_a.py python_a $ITERATIONS
 
 #################################################
 #                      PHP                      #
@@ -43,7 +43,7 @@ ARG ITERATIONS=100
 WORKDIR /app
 COPY --from=database /app /app
 
-RUN sh run.sh php src/php_a.php php_a $ITERATIONS
+RUN sh resources/run.sh php src/php_a.php php_a $ITERATIONS
 
 #################################################
 #                     NODE                      #
@@ -54,7 +54,7 @@ ARG ITERATIONS=100
 WORKDIR /app
 COPY --from=database /app /app
 
-RUN sh run.sh node src/node_a.js node_a $ITERATIONS
+RUN sh resources/run.sh node src/node_a.js node_a $ITERATIONS
 
 #################################################
 #                       R                       #
@@ -65,7 +65,7 @@ ARG ITERATIONS=100
 WORKDIR /app
 COPY --from=database /app /app
 
-RUN sh run.sh Rscript src/r_a.r r_a $ITERATIONS
+RUN sh resources/run.sh Rscript src/r_a.r r_a $ITERATIONS
 
 #################################################
 #                     JAVA                      #
@@ -78,7 +78,7 @@ COPY --from=database /app /app
 
 RUN javac -d bin src/java_a.java
 RUN cp src/java_a.java bin
-RUN sh run.sh cmd "java -cp bin java_a" java_a $ITERATIONS
+RUN sh resources/run.sh cmd "java -cp bin java_a" java_a $ITERATIONS
 
 #################################################
 #                      GO                       #
@@ -90,7 +90,7 @@ WORKDIR /app
 COPY --from=database /app /app
 
 RUN go build -o bin/go_a src/go_a.go
-RUN sh run.sh cmd "bin/go_a" go_a $ITERATIONS
+RUN sh resources/run.sh cmd "bin/go_a" go_a $ITERATIONS
 #################################################
 #                    CRYSTAL                    #
 #################################################
@@ -101,7 +101,7 @@ WORKDIR /app
 COPY --from=database /app /app
 
 RUN crystal build -o bin/crystal_a src/crystal_a.cr
-RUN sh run.sh cmd "bin/crystal_a" crystal_a $ITERATIONS
+RUN sh resources/run.sh cmd "bin/crystal_a" crystal_a $ITERATIONS
 
 #################################################
 #                       C                       #
@@ -113,7 +113,7 @@ WORKDIR /app
 COPY --from=database /app /app
 
 RUN gcc -o bin/c_a src/c_a.c
-RUN sh run.sh cmd "bin/c_a" c_a $ITERATIONS
+RUN sh resources/run.sh cmd "bin/c_a" c_a $ITERATIONS
 
 #################################################
 #                     COBOL                     #
@@ -125,12 +125,14 @@ WORKDIR /app
 COPY --from=database /app /app
 
 RUN cobc -x -o bin/cobol_a  src/cobol_a.cbl
-RUN sh run.sh cmd "bin/cobol_a" cobol_a $ITERATIONS
+RUN sh resources/run.sh cmd "bin/cobol_a" cobol_a $ITERATIONS
 
 #################################################
 #                   ANALYSIS                    #
 #################################################
 FROM nu12/rmarkdown:4.0.2 as report
+
+ARG EXPERIMENT_LABEL
 
 WORKDIR /app
 COPY --from=database /app /app
@@ -147,9 +149,11 @@ COPY --from=cobol /app/outputs/*.csv /app/outputs
 
 RUN Rscript resources/result.r
 
+RUN tar -czvf result/outputs.tar.gz /app/outputs/ /app/result/index.html
+
 #################################################
 #                    OUTPUT                     #
 #################################################
 FROM nginx:alpine as final
 
-COPY --from=report /app/result/index.html /usr/share/nginx/html/
+COPY --from=report /app/result/index.html /app/result/outputs.tar.gz /usr/share/nginx/html/

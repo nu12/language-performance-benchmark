@@ -19,6 +19,7 @@ require(dplyr)
 require(ggplot2)
 require(agricolae)
 require(DT)
+require(bit64)
 
 fast_read <- function(dir, file)
 {
@@ -37,6 +38,7 @@ fast_read <- function(dir, file)
       )
   )
 }
+   
 
 ```
 
@@ -45,7 +47,9 @@ fast_read <- function(dir, file)
 
 The goal of this report is to ...
 
-[...]
+`r if(Sys.getenv("EXPERIMENT_LABEL") != ""){paste("Experiment label: ", Sys.getenv("EXPERIMENT_LABEL"), ".")}` 
+
+[Download output files](outputs.tar.gz)
 
 ## Descriptive
 
@@ -54,7 +58,8 @@ In this session will be presented the descriptive statistics about the time of e
 **PS:** It was removed from the analysis the top and bottom 5% results for each language.
 
 ```{r, eval = TRUE, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
-db <- purrr::map_df(.x = list.files('outputs/'),.f = fast_read, dir = 'outputs/') %>%
+
+db <- purrr::map_df(.x = list.files('../outputs/'),.f = fast_read, dir = '../outputs/') %>%
   group_by(Script) %>%
   mutate(
     top_5 = quantile(Interval, 0.95),

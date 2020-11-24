@@ -74,17 +74,12 @@ Warning: this will download a massive amount of data for several different image
 Run:
 
 ```bash
-$ docker-compose up -d --build
+$ docker-compose up --build
 ```
 
 Wait the service to be available and open `localhost` or the IP machine in the browser.
 
-To run the test again, remove the created container and intermediate images:
-
-```bash
-$ docker-compose down
-$ docker image prune --filter dangling=true
-```
+To run the test again, change the `EXPERIMENT_LABEL` variable.
 
 ### Local
 

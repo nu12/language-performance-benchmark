@@ -85,3 +85,4 @@
            END-IF.
            ADD CURRENT TO SUMM GIVING SUMM.
            ADD 1 TO COUNTER GIVING COUNTER.
+           
